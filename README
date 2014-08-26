@@ -1,0 +1,101 @@
+The code is organized into three main parts: processing, cutting, and plotting (which are sorted into directories). Each directory contains a main executable script (process.py, cut.py, and plot.py), as well as modules that contain the functions used within the executable.
+
+The input and output files for the executable scripts are provided as command line arguments, so it should be easy to automate workflows using shell scripts (several examples are provided). For an explanation of the command line usage, call the script with the -h flag. For example,
+
+$ python process.py -h
+
+To view the documentation for a file, simply call the pydoc command on it. Eg.
+
+$ pydoc geometry.py
+... lots of wonderful documentation
+
+Processing: Before we do the main cuts on the files, some basic filtering, reconstruction, and calculations must be done. process.py takes an I3 file with its GCD, applies this processing, and writes the output to another I3 file. Here is a general overview of the script:
+
+o Get the command line arguments and open the files
+
+o Frame Filtering
+
+  Some basic frame filters (these are held constant). They are:
+
+  in_ice - check that sub_event_stream == 'in_ice'
+  min_bias - check in FilterMinBias_11 that condition_passed and prescale_passed are both true
+  SMT8 - make sure that the length of TWOfflinePulsesHLC is >= 8
+  MPEFit - check that the fit_status of MPEFit is OK, and that 40 < zenith < 70
+  TriggerCheck_12 and InIceSMTTriggered - add the TriggerCheck_12 module, which calculates InIceSMTTriggered, and then check that InIceSMTTriggered is true.
+
+o Monte Carlo
+
+  The process.py script takes an optional --extra flag, which turns on some additional processing for simulation files (the majority of which is done here).
+
+o Miscellaneous
+
+  These functions don't fit in any specific section.
+
+  direct_hits, hit_multiplicity, hit_statistics - Add these segments to calculate common cut variables
+
+  move_cut_variables - Move the cut values calculated by CommonVariables (and rlogl from MPEFitFitParams) into the top level of the frame. This is done so the cut.py script can access these values directly.
+
+  finite_reco_param - TODO document this
+
+  count_hits - TODO document this
+
+  reco_endpoint - Calculate the reconstructed endpoint of the event (using the provided fit).
+
+  reco_endpoint_z - Add the z coordinate of the reconstructed endpoint to the frame (so cut.py can access it)
+
+o Geoanalysis
+
+  These functions look at the geometry of events relative to the detector. The heavy lifting is done in geometry.py, which contains very general functions for simple problems in 2D computational geometry. The functions in geoanalysis mostly translate the data in the frames into something the geometry functions can work with.
+
+  calc_dist_to_border - calculate the shortest distance of the reconstructed event endpoint to the detector border. Endpoints outside the detector get negative distances, and events inside positive.
+
+  num_muons - TODO document this.
+
+o Domanalysis
+
+  In this section, we look at
+
+  Things get a little involved here, so hang on. We want to
+
+  om_partition -
+
+  dom_data - Get the data for the doms. Iterate over all the doms in the analysis region
+
+o Write the output to an I3 file
+
+process.bash is an example shell script for running this executable.
+
+Cutting: Except for a few basic cuts (min_bias, SMT8, etc.) done in the processing file, the majority of cuts are done here. In the cutting script, an arbitrary number of processed I3 files are provided as input. The specified cuts are then applied, and the data is then written out to an HDF5 file for plotting.
+
+o Get the command line arguments and open the files
+
+o make_event_cuts - remove the frames that do not pass all the event cuts. These cuts are defined within the 'event_cuts' dictionary. It has a simple format. The keys are the names of keys in the frame, and the values define the cut to make. Ex. event_cuts['NDirDoms'] = ('greater than', 5) means only keep frames with an NDirDoms greater than 5. Easy.
+
+o make_dom_cuts - Now that we have filtered out the frames that do not pass the event cuts, we can do the dom cuts. Each frame has several I3VectorDoubles that contain the data for all the doms that The cuts on the dom data are defined similarly in the 'dom_cuts' dictionary. Once the cuts have been made, the data is split apart into data for IC doms and data for DC doms.
+
+o Write out data to an HDF5 file. To keep the file size manageable, only user selected keys are written to the file; these are defined in the 'event_keys' and 'dom_keys' lists.
+
+o write_cut_metadata - Write the cut dictionaries to the HDF5 as metadata (so we can retrieve them later to see what cuts were made).
+
+cut.bash is an example script for running cut.py
+
+
+Plotting: plot.py creates several comparison plots from two HDF5 files.
+
+
+Global Dependencies: (for all scripts)
+* Python 2.7 or 3.2+
+* Numpy 1.7+
+
+Processing Dependencies:
+* IceTray
+
+Cutting Dependencies:
+* IceTray
+* HDF5 1.8.11+
+* Pytables 3.0+
+
+Plotting Dependencies:
+* HDF5 1.8.11+
+* Pytables 3.0+
+* Matplotlib 1.3+

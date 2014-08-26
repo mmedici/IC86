@@ -1,0 +1,10 @@
+Changes from IC79 to IC86
+
+o jeb-filter-2011 -> jeb-filter-2012
+o TriggerCheck_11 -> TriggerCheck_12
+o removed BoundsE, BoundsL, and StepL in I3SimpleParametrizationFactory
+o replace I3CutsModule (deprecated) with CommonVariables
+o nullsplit -> in_ice
+o FilterMinBias_10 -> FilterMinBias_11
+o MPEFit_SLC -> MPEFit
+o I3Position.calc_distance -> vector subtraction and then magnitude of difference
