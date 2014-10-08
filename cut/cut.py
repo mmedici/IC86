@@ -33,6 +33,7 @@ dom_cuts['DistAboveEndpoint'] = ('greater than', 100)
 # The keys containing the per DOM data
 dom_keys = ['TotalCharge', 'String', 'OM', 'DistAboveEndpoint', 'ImpactAngle', 'RecoDistance']
 
+
 def main():
 
     parser = argparse.ArgumentParser(description='script for making event and DOM cuts')

@@ -125,4 +125,3 @@ def dom_data(frame, reco_fit, options):
     # After all that, if none of the DOMs made it through, get rid of this
     # frame.
     return len(frame['TotalCharge']) != 0
-
