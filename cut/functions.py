@@ -94,9 +94,6 @@ def make_dom_cuts(frame, dom_cuts, dom_keys):
     # Iterate over the dom keys we want to keep and make the cut.
     for key in dom_keys:
 
-        if key == 'TimeResidual':  # We don't do a cut on TimeResidual
-            continue
-
         # Get the data.
         data = np.array(frame[key])
 

@@ -30,11 +30,8 @@ dom_cuts = {}
 dom_cuts['ImpactAngle'] = ('less than', math.pi / 2)  # Must be radians
 dom_cuts['DistAboveEndpoint'] = ('greater than', 100)
 
-# To make the size of the resulting HDF5 file manageable, only certain keys
-# written to the file. You can chose them below.
-event_keys = ['RecoEndpoint', 'FiniteRecoFit']  # The general event keys
-dom_keys = ['TotalCharge', 'RecoDistance']  # The keys for DOM data
-
+# The keys containing the per DOM data
+dom_keys = ['TotalCharge', 'String', 'OM', 'DistAboveEndpoint', 'ImpactAngle', 'RecoDistance']
 
 def main():
 
@@ -44,19 +41,6 @@ def main():
     parser.add_argument('-o', '--ofile', help='name of output HDF5 file',
                         required=True)
     args = parser.parse_args()
-
-    # These are the keys that will be written out to the HDF5 file.
-    keys = list(event_keys)  # make a copy
-
-    # Add the dom cut IC/DC keys
-    for key in dom_keys:
-        if key == 'TimeResidual':  # TimeResidual is not cut
-            keys.append(key)
-        else:
-            key_IC = key + 'IC'
-            key_DC = key + 'DC'
-            keys.append(key_IC)
-            keys.append(key_DC)
 
     tray = I3Tray.I3Tray()
 
@@ -78,10 +62,8 @@ def main():
 
     tray.AddModule(I3TableWriter, 'I3TableWriter',
                    TableService=hdf5,
-                   Keys=keys,
+                   BookEverything=True,
                    SubEventStreams=['in_ice'])
-
-    tray.AddModule('TrashCan', 'yeswecan')
 
     tray.Execute()
     tray.Finish()

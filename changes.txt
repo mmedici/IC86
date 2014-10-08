@@ -1,5 +1,6 @@
 Changes from IC79 to IC86
 
+o border doms updated for IC86 in dist_to_border
 o jeb-filter-2011 -> jeb-filter-2012
 o TriggerCheck_11 -> TriggerCheck_12
 o removed BoundsE, BoundsL, and StepL in I3SimpleParametrizationFactory

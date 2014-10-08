@@ -1,5 +1,5 @@
 """
-Functions for analyzing the
+Functions for analyzing the doms.
 """
 
 from __future__ import print_function, division
@@ -22,34 +22,31 @@ def om_partition(frame, output_name, options):
         frame[key] = dataclasses.I3RecoPulseSeriesMap()
 
     # Get the pulse series
-    pulse_series = frame[options['pulses_name']]
-    if isinstance(pulse_series, dataclasses.I3RecoPulseSeriesMapMask):
-        pulse_series = pulse_series.apply(frame)
+    pulse_series = frame[options['pulses_name']].apply(frame)
 
     for dom, pulse_vector in pulse_series.items():
 
         # Find out which partition the pulse_vector is in
         partition_num = (dom.string + dom.om) % options['partitions']
 
-        # Put it in every partition except the one where it goes
+        # Put it in every partition except the one it is in.
         for partition in range(options['partitions']):
             if partition != partition_num:
                 key = output_name.format(partition)
-                # Put it where it goes
                 frame[key][dom] = pulse_vector
 
 
-def dom_data(frame, reco_fit, options, extra):
+def dom_data(frame, reco_fit, options):
     """
 
     Adds To Frame
     -------------
     TotalCharge : I3VectorDouble
+
     String : I3VectorDouble
+    OM : I3VectorDouble
     DistAboveEndpoint : I3VectorDouble
-    ImpactParam : I3VectorDouble
     ImpactAngle : I3VectorDouble
-    TimeResidual : I3VectorDouble
     RecoDistance : I3VectorDouble
 
     """
@@ -65,23 +62,13 @@ def dom_data(frame, reco_fit, options, extra):
     # Get the pulse series
     pulse_series = frame[options['pulses_name']].apply(frame)
 
-    # Get most energetic track
-    if extra:
-        mc_most_energetic = frame['MCTrueMostEnergetic']
-
-    # Initialize
+    # Initialize the vectors
     frame['TotalCharge'] = dataclasses.I3VectorDouble()
     frame['String'] = dataclasses.I3VectorDouble()
     frame['OM'] = dataclasses.I3VectorDouble()
     frame['DistAboveEndpoint'] = dataclasses.I3VectorDouble()
-    frame['ImpactParam'] = dataclasses.I3VectorDouble()
     frame['ImpactAngle'] = dataclasses.I3VectorDouble()
-    frame['TimeResidual'] = dataclasses.I3VectorDouble()
     frame['RecoDistance'] = dataclasses.I3VectorDouble()
-    if extra:
-        frame['TrueDistance'] = dataclasses.I3VectorDouble()
-        frame['DeltaDistance'] = dataclasses.I3VectorDouble()
-        frame['NMuons'] = dataclasses.I3VectorDouble()
 
     # Find all doms above reconstructed z coord of endpoint and
     # within the specified distance interval of the track
@@ -112,14 +99,12 @@ def dom_data(frame, reco_fit, options, extra):
 
                         frame['RecoDistance'].append(reco_dist)
                         frame['DistAboveEndpoint'].append(dist_above_endpoint)
-
                         frame['String'].append(dom.string)
                         frame['OM'].append(dom.om)
 
                         perp_position = dataclasses.I3Position(dom_position.x, dom_position.y, clos_app_pos.z)
                         delta = perp_position - clos_app_pos
                         impact_param = delta.magnitude
-                        frame['ImpactParam'].append(impact_param)
 
                         impact_angle = math.asin(impact_param / calc.closest_approach_distance(mpe, dom_position))
                         frame['ImpactAngle'].append(impact_angle)
@@ -134,28 +119,10 @@ def dom_data(frame, reco_fit, options, extra):
                                 time_res = calc.time_residual(mpe, dom_position, pulse.time, n_ice_group, n_ice_phase)
                                 if time_res < 1000:
                                     total_charge += pulse.charge
-                                    frame['TimeResidual'].append(time_res)
 
                         frame['TotalCharge'].append(total_charge)
 
-                        if extra:
+    # After all that, if none of the DOMs made it through, get rid of this
+    # frame.
+    return len(frame['TotalCharge']) != 0
 
-                            true_dist = calc.cherenkov_distance(mc_most_energetic, dom_position, n_ice_group, n_ice_phase)
-                            frame['TrueDistance'].append(true_dist)
-
-                            delta_dist = true_dist - reco_dist
-                            frame['DeltaDistance'].append(delta_dist)
-
-                            # Iterate over the MMCTrackList and count how many
-                            # muons have their Cherenkov position above the
-                            # track endpoint but within 140 m of the track.
-                            num_muons = 0
-                            for track in frame['MMCTrackList']:
-                                particle = track.particle
-                                chpos = calc.cherenkov_position(particle, dom_position, n_ice_group, n_ice_phase)
-                                chdist = calc.cherenkov_distance(particle, dom_position, n_ice_group, n_ice_phase)
-                                z_endpoint = particle.shift_along_track(particle.length).z
-                                if z_endpoint < chpos.z and chdist < options['max_dist']:
-                                    num_muons += 1
-
-                            frame['NMuons'].append(num_muons)

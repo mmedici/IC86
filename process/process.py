@@ -13,9 +13,8 @@ from icecube.common_variables import direct_hits, hit_multiplicity, hit_statisti
 from I3Tray import I3Tray, I3Units, load
 
 from filters import in_ice, min_bias, SMT8, MPEFit, InIceSMTTriggered
-from montecarlo import mc_tracks, total_ec, mc_most_energetic, primary_energy
-from miscellaneous import move_cut_variables, finite_reco_param, count_hits, reco_endpoint, reco_endpoint_z
-from geoanalysis import calc_dist_to_border, num_muons
+from general import get_truth_muon, truth_endpoint, count_hits, reco_endpoint, move_cut_variables
+from geoanalysis import calc_dist_to_border
 from domanalysis import om_partition, dom_data
 
 load('libipdf')
@@ -28,12 +27,11 @@ load('libjeb-filter-2012')
 
 def main():
 
-    parser = argparse.ArgumentParser(description='script for proccessing I3 files',
-                                     epilog='Example usage: $ ./process.py -e gcd.i3.bz2 datafile.i3.bz2 output.i3.bz2')
+    parser = argparse.ArgumentParser(description='script for proccessing I3 files')
     parser.add_argument('gcd', help='GCD file for the data')
     parser.add_argument('data', help='data file for processing')
     parser.add_argument('ofile', help='name of output file')
-    parser.add_argument('-e', '--extra', help='turn on extra processing (simulated data only)',
+    parser.add_argument('-s', '--sim', help='turn on extra processing for sim files',
                         action='store_true')
     args = parser.parse_args()
 
@@ -63,8 +61,8 @@ def main():
     # Check that the fit_status of MPEFit is OK, and that 40 < zenith < 70
     tray.AddModule(MPEFit, 'MPEFit')
 
-    # Trigger check stuff
-    # jeb-filter-2011
+    # Trigger check
+    # jeb-filter-2012
     tray.AddModule('TriggerCheck_12', 'TriggerCheck_12',
                    I3TriggerHierarchy='I3TriggerHierarchy',
                    InIceSMTFlag='InIceSMTTriggered',
@@ -78,60 +76,11 @@ def main():
     # Check that InIceSMTTriggered is true.
     tray.AddModule(InIceSMTTriggered, 'InIceSMTTriggered')
 
-    # Monte Carlo
-
-    if args.extra:
-        tray.AddModule(mc_tracks, 'mc_tracks')
-        tray.AddModule(total_ec, 'total_ec')
-        tray.AddModule(mc_most_energetic, 'mc_most_energetic')
-        tray.AddModule(primary_energy, 'primary_energy')
-
-    # Miscellaneous
-
-    # Calculate cut variables
-    tray.AddSegment(direct_hits.I3DirectHitsCalculatorSegment, 'I3DirectHits',
-                    PulseSeriesMapName=options['pulses_name'],
-                    ParticleName='MPEFit',
-                    OutputI3DirectHitsValuesBaseName='MPEFitDirectHits')
-
-    tray.AddSegment(hit_multiplicity.I3HitMultiplicityCalulatorSegment, 'I3HitMultiplicity',
-                    PulseSeriesMapName=options['pulses_name'],
-                    OutputI3HitMultiplicityValuesName='HitMultiplicityValues')
-
-    tray.AddSugment(hit_statistics.I3HitStatisticsCalculatorSegment, 'I3HitStatistics',
-                    PulseSeriesMapName=options['pulses_name'],
-                    OutputI3HitStatisticsValuesName='HitStatisticsValues')
-
-    # Move the cut variables and rlogl into the top level of the frame.
-    tray.AddModule(move_cut_variables, 'move_cut_variables',
-                   direct_hits_name='MPEFitDirectHits',
-                   hit_multiplicity_name='HitMultiplicityValues',
-                   hit_statistics_name='HitStatisticsValues',
-                   fit_params_name='MPEFitFitParams')
-
-    # Subtract LLHStoppingTrack - LLHInfTrack and store it as FRStopLLHRatio
-    tray.AddModule(finite_reco_param, 'finite_reco_param',
-                   finite_reco_name='FiniteRecoLlh')
-
-    # Get ICNHits, NICLC, NDCLC, ICLCCuts, ICAnalysisHits, and DCAnalysisHits
-    tray.AddModule(count_hits, 'count_hits',
-                   pulses_name=options['pulses_name'])
+    # Endpoint
 
     # Add the reconstructed event endpoint to the frame.
     tray.AddModule(reco_endpoint, 'reco_endpoint',
                    endpoint_fit='FiniteRecoFit')
-
-    # Get the z coordinate of the reconstructed endpoint.
-    tray.AddModule(reco_endpoint_z, 'reco_endpoint_z')
-
-    # Geoanalysis
-
-    # Calculate the distance of each event to the detector border.
-    tray.AddModule(calc_dist_to_border, 'calc_dist_to_border')
-
-    if args.extra:
-        # Get NumberOfMuonsTop and NumberOfMuonsCenter
-        tray.AddModule(num_muons, 'num_muons')
 
     # Domanalysis
 
@@ -208,12 +157,45 @@ def main():
                        LogLikelihood='MPEPandel{}'.format(partition),  # Name of likelihood service
                        Minimizer='Minuit')                             # Name of minimizer service
 
-    # This uses the MPEFit's to calculate TotalCharge, RecoDistance,
-    # TrueDistance, NMuons, etc.
+    # This uses the MPEFit's to calculate TotalCharge, RecoDistance, etc.
     tray.AddModule(dom_data, 'dom_data',
                    reco_fit='MPEFit{}',
-                   options=options,
-                   extra=args.extra)
+                   options=options)
+
+    # General
+
+    # Calculate cut variables
+    tray.AddSegment(direct_hits.I3DirectHitsCalculatorSegment, 'I3DirectHits',
+                    PulseSeriesMapName=options['pulses_name'],
+                    ParticleName='MPEFit',
+                    OutputI3DirectHitsValuesBaseName='MPEFitDirectHits')
+
+    tray.AddSegment(hit_multiplicity.I3HitMultiplicityCalculatorSegment, 'I3HitMultiplicity',
+                    PulseSeriesMapName=options['pulses_name'],
+                    OutputI3HitMultiplicityValuesName='HitMultiplicityValues')
+
+    tray.AddSegment(hit_statistics.I3HitStatisticsCalculatorSegment, 'I3HitStatistics',
+                    PulseSeriesMapName=options['pulses_name'],
+                    OutputI3HitStatisticsValuesName='HitStatisticsValues')
+
+    # Get ICAnalysisHits, DCAnalysisHits, and ICNHits
+    tray.AddModule(count_hits, 'count_hits',
+                   pulses_name=options['pulses_name'])
+
+    # Move the cut variables into the top level of the frame.
+    tray.AddModule(move_cut_variables, 'move_cut_variables',
+                   direct_hits_name='MPEFitDirectHits',
+                   fit_params_name='MPEFitFitParams')
+
+    if args.sim:
+        # Count the number of in ice muons and get the truth muon
+        tray.AddModule(get_truth_muon, 'get_truth_muon')
+        tray.AddModule(truth_endpoint, 'truth_endpoint')
+
+    # Geoanalysis
+
+    # Calculate the distance of each event to the detector border.
+    tray.AddModule(calc_dist_to_border, 'calc_dist_to_border')
 
     # Write out the data to an I3 file
     tray.AddModule('I3Writer', 'I3Writer',
@@ -222,7 +204,6 @@ def main():
                    DropOrphanStreams=[icetray.I3Frame.DAQ],
                    Streams=[icetray.I3Frame.DAQ, icetray.I3Frame.Physics])
 
-    tray.AddModule('TrashCan', 'yeswecan')
     tray.Execute()
     tray.Finish()
 

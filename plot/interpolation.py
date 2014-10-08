@@ -1,3 +1,7 @@
+"""
+Create the plot used to derive the experimental DOM efficiency.
+"""
+
 import argparse
 
 import matplotlib.pyplot as plt
@@ -5,10 +9,106 @@ import numpy as np
 from scipy import optimize
 import tables
 
-from calculate import dist_bin_split, calc_charge_info
+
+def dist_bin_split(total_charges, reco_distances):
+    """
+    Split apart 'total_charges' based on the corresponding reconstructed
+    distances.
+
+    Parameters
+    ----------
+    total_charges : 1D Numpy array
+        The total charge recorded by each DOM
+
+    reco_distance : 1D Numpy array
+        The corresponding ___ for the charges.
+
+    Returns
+    -------
+    split_charges : list of 1D Numpy arrays
+        The charges for each bin. The charges for the first bin are in
+        split_charges[0], the charges for the second in split_charges[1], etc.
+    """
+
+    # Both these numbers are in metres
+    bin_width = 20
+    max_dist = 140
+
+    split_charges = []
+    for dist in range(0, max_dist, bin_width):
+
+        dist_cut = (dist <= reco_distances) & (reco_distances < dist + bin_width)
+
+        split_charges.append(total_charges[dist_cut])
+
+    return split_charges
+
+
+def calc_charge_info(split_charges):
+    """
+    Calculate the average charge and error for each distance bin.
+
+    Parameters
+    ----------
+    split_charges: list of 1D numpy arrays
+        The charges split apart into bins. Each array has the charges for a
+        particular bin.
+
+    Returns
+    -------
+    mean_charges: 1D numpy array
+        The average charge of each distance bin.
+
+    errors: 1D numpy array
+        The error for each average charge.
+    """
+
+    mean_charges = []
+    errors = []
+
+    for bin_charges in split_charges:
+
+        mean_charges.append(bin_charges.mean())
+
+        num_hits = np.count_nonzero(bin_charges)
+        num_no_hits = len(bin_charges) - num_hits  # 0 in the array means no hit
+
+        non_zero = bin_charges != 0
+        non_zero_charges = bin_charges[non_zero]
+
+        mu = non_zero_charges.mean()
+        std_mu = np.std(non_zero_charges, ddof=1) / np.sqrt(num_hits)
+
+        error = num_hits * (mu * num_no_hits) ** 2 / len(bin_charges) ** 4
+        error += num_no_hits * (mu * num_hits) ** 2 / len(bin_charges) ** 4
+        error += (std_mu * num_hits / len(bin_charges)) ** 2
+        error **= 1 / 2
+
+        errors.append(error)
+
+    mean_charges = np.array(mean_charges)
+    errors = np.array(errors)
+
+    return mean_charges, errors
 
 
 def process(dataset_path):
+    """
+    Calculate the mean_charges and errors for the dataset at the specified path.
+
+    Parameters
+    ----------
+    dataset_path : str
+        Path to the dataset
+
+    Returns
+    -------
+    mean_charges: 1D numpy array
+        The average charge of each distance bin.
+
+    errors: 1D numpy array
+        The error for each average charge.
+    """
 
     infile = tables.open_file(dataset_path)
 
@@ -17,15 +117,11 @@ def process(dataset_path):
 
     infile.close()
 
-    # nz = total_charge_IC != 0
-    # reco_distance_IC = reco_distance_IC[nz]
-    # total_charge_IC = total_charge_IC[nz]
-
     total_charge_IC_split = dist_bin_split(total_charge_IC, reco_distance_IC)
 
-    charge_info = calc_charge_info(total_charge_IC_split)
+    mean_charges, errors = calc_charge_info(total_charge_IC_split)
 
-    return charge_info
+    return mean_charges, errors
 
 
 def main():
@@ -34,7 +130,7 @@ def main():
     # Get Arguments
     ###############
 
-    parser = argparse.ArgumentParser(description='script for making final plot')
+    parser = argparse.ArgumentParser(description='script for deriving the DOM efficiency')
     parser.add_argument('-s', '--sim', help='simulated datafiles',
                         nargs='+', required=True)
     parser.add_argument('-e', '--effs', help='efficiences of the simulated datafiles',
@@ -76,11 +172,11 @@ def main():
     bundle_error = np.sqrt((sigma_cr_b / cr_b) ** 2 + (sigma_n_b / n_b) ** 2 + (sigma_n_t / n_t) ** 2) * cb
 
     # SPE peak error, from fits
-    # spe_correction_factor=1.022
-    # spe_charge_error=0.0065
+    # spe_correction_factor = 1.022
+    # spe_charge_error = 0.0065
 
     # for not including SPE correction, use these:
-    spe_correction_factor = 1.0
+    spe_correction_factor = 1
     spe_charge_error = 0
 
     # Noise error
@@ -98,14 +194,12 @@ def main():
     # Experimental
     ##############
 
-    exp_charge_info = process(args.exp)
-    exp_charges = exp_charge_info['charge']
-    exp_errors = exp_charge_info['error']
+    exp_charges, exp_errors = process(args.exp)
 
-    # scaled_exp_charges = exp_charges / (exp_charges * spe_correction_factor)
-    scaled_exp_charges = exp_charges / exp_charges
+    scaled_exp_charges = exp_charges / (exp_charges * spe_correction_factor)
     scaled_exp_errors = exp_errors / exp_charges
 
+    # Get the charges of the 20-80 m distance bins.
     exp_charges_we_want = scaled_exp_charges[1:4]
     exp_errors_we_want = scaled_exp_errors[1:4]
 
@@ -121,21 +215,23 @@ def main():
     sim_charges = []
     sim_errors = []
     for path in args.sim:
-        sim_charge_info = process(path)
-        sim_charges.append(sim_charge_info['charge'])
-        sim_errors.append(sim_charge_info['error'])
+        charges, errors = process(path)
+        sim_charges.append(charges)
+        sim_errors.append(errors)
 
     sim_charges = np.array(sim_charges)  # 2D
     sim_errors = np.array(sim_errors)
 
+    # Scale the simulated charges and down by the experimental charges
     scaled_sim_charges = sim_charges / exp_charges  # Scale the charges down
     scaled_sim_errors = scaled_sim_charges * np.sqrt((sim_errors / sim_charges) ** 2 + (exp_errors / exp_charges) ** 2)
 
-    scaled_sim_charges_we_want = scaled_sim_charges[:, 1:4]  # get the ones in 20-80 bins
+    # Get the ones in 20-80 bins
+    scaled_sim_charges_we_want = scaled_sim_charges[:, 1:4]
     scaled_sim_errors_we_want = scaled_sim_errors[:, 1:4]
 
-    avg_scaled_sim_charges = scaled_sim_charges_we_want.mean(axis=1)  # take the mean along the rows
-    avg_scaled_sim_errors = np.sqrt(np.sum(scaled_sim_errors_we_want ** 2, axis=1)) / 3  # this is the original error calculation
+    avg_scaled_sim_charges = scaled_sim_charges_we_want.mean(axis=1)  # Take the mean along the rows
+    avg_scaled_sim_errors = np.sqrt(np.sum(scaled_sim_errors_we_want ** 2, axis=1)) / 3
 
     #########
     # Fitting
@@ -166,9 +262,11 @@ def main():
     # Plotting
     ##########
 
+    # Plot the simulation points and the fit
     plt.errorbar(effs, avg_scaled_sim_charges, avg_scaled_sim_errors, linestyle='None', color='r', marker='o', label='Simulation')
     plt.plot(effs, fit, color='r')
 
+    # Plot the experimental datapoint
     plt.errorbar(derived_exp_eff, avg_scaled_exp_charge, xerr=exp_xerror, yerr=exp_yerror, color='b', marker='o', label='Experiment')
 
     plt.title('Scaled Average Charge vs. Simulated DOM Efficiency')
@@ -176,8 +274,8 @@ def main():
     plt.ylabel('Scaled Average Charge')
     plt.legend(loc='upper left')
 
-    plt.xlim(0.8, 1.3)
-    plt.ylim(0.8, 1.3)
+    plt.xlim(effs.min() - 0.1, effs.max() + 0.1)
+    plt.ylim(effs.min() - 0.1, effs.max() + 0.1)
     plt.figtext(0.8, 0.8, r'$ m = {:.3f}$'.format(m))
 
     plt.savefig(args.outdir + 'scaled_average_charge.pdf')
