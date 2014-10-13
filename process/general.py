@@ -40,33 +40,44 @@ def count_hits(frame, pulses_name):
 
     Adds To Frame
     -------------
-    ICNHits : I3Double
-
     ICAnalysisHits : I3Double
+        The number of hits within the IC analysis region.
 
     DCAnalysisHits : I3Double
+        The number of hits within the DC analysis region.
 
+    ICNHits : I3Double
+        The number of hits outside the IC analysis region.
+
+    DCNHits : I3Double
+        The number of hits outside the DC analysis region.
     """
-    IC_strings = [36, 26, 27, 35, 37, 45, 46, 17, 18, 19, 28, 38, 47, 56, 55, 54, 44, 34, 25]
+
+    IC_strings = [26, 27, 37, 46, 45, 35, 17, 18, 19, 28, 38, 47, 56, 55, 54, 44, 34, 25]
     DC_strings = [81, 82, 83, 84, 85, 86]
 
     IC_analysis_hits = 0
     DC_analysis_hits = 0
-    IC_num_hits = 0
+    IC_nhits = 0
+    DC_nhits = 0
 
     pulse_series = frame[pulses_name].apply(frame)
 
     for dom in pulse_series.keys():
         if dom.string in IC_strings and dom.om >= 40:
             IC_analysis_hits += 1
-        elif dom.string in DC_strings and dom.om >= 11:
+        if dom.string in DC_strings and dom.om >= 11:
             DC_analysis_hits += 1
-        elif dom.string not in (79, 80):
-            IC_num_hits += 1
+
+        if dom.string not in [36, 79, 80] + DC_strings + IC_strings:
+            IC_nhits += 1
+        if dom.string not in [36, 79, 80] + DC_strings:
+            DC_nhits += 1
 
     frame['ICAnalysisHits'] = dataclasses.I3Double(IC_analysis_hits)
     frame['DCAnalysisHits'] = dataclasses.I3Double(DC_analysis_hits)
-    frame['ICNHits'] = dataclasses.I3Double(IC_num_hits)
+    frame['ICNHits'] = dataclasses.I3Double(IC_nhits)
+    frame['DCNHits'] = dataclasses.I3Double(DC_nhits)
 
 
 def reco_endpoint(frame, endpoint_fit):
