@@ -15,23 +15,7 @@ from icecube.hdfwriter import I3HDFTableService
 from icecube.tableio import I3TableWriter
 
 from functions import make_event_cuts, make_dom_cuts, write_cut_metadata
-
-# The event cuts to make. Change these as much as you like.
-event_cuts = {}
-event_cuts['NDirDoms'] = ('greater than', 5)
-event_cuts['rlogl'] = ('less than', 10)
-event_cuts['ICNHits'] = ('less than', 20)
-event_cuts['RecoEndpointZ'] = ('greater than', -400)
-event_cuts['DistToBorder'] = ('greater than', 50)
-event_cuts['ICAnalysisHits'] = ('greater than', 0)
-
-# The dom cuts to make. Change these freely.
-dom_cuts = {}
-dom_cuts['ImpactAngle'] = ('less than', math.pi / 2)  # Must be radians
-dom_cuts['DistAboveEndpoint'] = ('greater than', 100)
-
-# The keys containing the per DOM data
-dom_keys = ['TotalCharge', 'String', 'OM', 'DistAboveEndpoint', 'ImpactAngle', 'RecoDistance']
+from cut_options import event_cuts, dom_cuts, dom_keys
 
 
 def main():
