@@ -20,10 +20,24 @@ Processing: Before we do the main cuts on the files, some basic filtering, recon
     Some basic frame filters (these are held constant). They are:
 
     in_ice - Check that sub_event_stream == 'in_ice'
+
     min_bias - Check in FilterMinBias_11 that condition_passed and prescale_passed are both true
+
     SMT8 - Make sure that the length of TWOfflinePulsesHLC is >= 8
+
     MPEFit - Check that the fit_status of MPEFit is OK, and that 40 < zenith < 70
+
     TriggerCheck_12 and InIceSMTTriggered - Add the TriggerCheck_12 module, which calculates InIceSMTTriggered, and check that InIceSMTTriggered is true.
+
+  o Endpoint
+
+    reco_endpoint - Calculate the reconstructed endpoint of the event (using the provided fit).
+
+  o Domanalysis
+
+    om_partition - split apart the pulses in the pulse series for cross validation when redoing the recostructions.
+
+    dom_data - calculate the per-dom data and at it to the frame.
 
   o General
 
@@ -31,42 +45,36 @@ Processing: Before we do the main cuts on the files, some basic filtering, recon
 
     direct_hits, hit_multiplicity, hit_statistics - Add these segments to calculate common cut variables
 
-    count_hits - Iterate over the pulse series specified in options['pulse_series'], and calculate ICAnalysisHits and DCAnalysisHits. ICAnalysisHits is the number of hits in the IC analysis region (the inner two hexagons, excluding Deep Core and string 36), and DCAnalysisHits is the number of hits in the Deep Core region, excluding strings 79 and 80.
-
-    reco_endpoint - Calculate the reconstructed endpoint of the event (using the provided fit).
-
     move_cut_variables - Move the NDirDoms cut value calculated by direct_hits, rlogl from the provided fit parameters, and the z coordinate of the reconstructed endpoint into the top level of the frame. This is done so the cut.py script can access these values directly.
+
+    count_hits - Iterate over the pulse series specified in options['pulse_series'], and calculate ICAnalysisHits, DCAnalysisHits, ICNHits, and DCNHits. ICAnalysisHits is the number of hits in the IC analysis region (the inner two hexagons, excluding Deep Core and string 36), and DCAnalysisHits is the number of hits in the Deep Core region, excluding strings 79 and 80. ICNHits is the number of hits outside the IC analysis region, and DCNHits is the number of hits outside the DC analysis region.
+
+    If the -s flag (for simulation) is passed as an argument, the following two functions retrieve the truth from the data file.
+
+    get_most_energetic - Count the number of in ice muons using the I3MCTree, and store the most energetic one, the "truth", in the frame
+
+    get_truth_endpoint - Calculate the endpoint of the event using the "truth" muon
 
   o Geoanalysis
 
-    These functions look at the geometry of events relative to the detector. The heavy lifting is done in geometry.py, which contains very general functions for simple problems in 2D computational geometry. The functions in geoanalysis mostly translate the data in the frames into something the geometry functions can work with.
+    This function looks at the geometry of events relative to the detector. The heavy lifting is done in geometry.py, which contains very general functions for simple problems in 2D computational geometry. The functions in geoanalysis mostly translate the data in the frames into something the geometry functions can work with.
 
     calc_dist_to_border - Calculate the shortest distance of the reconstructed event endpoint to the detector border. Endpoints outside the detector get negative distances, and events inside positive.
 
-  o Domanalysis
-
-    om_partition -
-
-    dom_data -
-
   o Write the output to an I3 file
 
-process.sh is an example shell script for running cut.py
 
-
-Cutting: Except for a few basic cuts (min_bias, SMT8, etc.) done in the processing file, the majority of cuts are done here. In the cutting script, an arbitrary number of processed I3 files are provided as input. The specified cuts are then applied, and the data is then written out to an HDF5 file for plotting.
+Cutting: Except for a few basic cuts (min_bias, SMT8, etc.) done in the processing file, the majority of cuts are done here. In the cutting script, an arbitrary number of processed I3 files are provided as input. The cuts to make are specified in a file called cut_options.py. When cut.py is invoked, the directory containing cut_options.py must be added to the PYTHONPATH so cut.py can find it. The specified cuts are then applied, and the data is then written out to an HDF5 file for plotting.
 
   o Get the command line arguments and open the files
 
-  o make_event_cuts - Remove the frames that do not pass all the event cuts. These cuts are defined within the 'event_cuts' dictionary. It has a simple format. The keys are the names of keys in the frame, and the values define the cut to make. Ex. event_cuts['NDirDoms'] = ('greater than', 5) means only keep frames with an NDirDoms greater than 5. Easy.
+  o make_event_cuts - Remove the frames that do not pass all the event cuts. These cuts are defined within the 'event_cuts' dictionary in cut_options.py. It has a simple format. The keys are the names of keys in the frame, and the values define the cut to make. Ex. event_cuts['NDirDoms'] = (operator.gt, 5) means only keep frames with an NDirDoms greater than 5. Easy.
 
-  o make_dom_cuts - Now that we have filtered out the frames that do not pass the event cuts, we can do the dom cuts. Each frame has several I3VectorDoubles that contain the data for all the doms that The cuts on the dom data are defined similarly in the 'dom_cuts' dictionary. Once the cuts have been made, the data is split apart into data for IC doms and data for DC doms.
+  o make_dom_cuts - Now that we have filtered out the frames that do not pass the event cuts, we can do the dom cuts. Each frame has several I3VectorDoubles that contain the data for all the doms that The cuts on the dom data are defined similarly in the 'dom_cuts' dictionary in cut_options.py.
 
-  o Write out data to an HDF5 file. To keep the file size manageable, only user selected keys are written to the file; these are defined in the 'event_keys' and 'dom_keys' lists.
+  o Write out data to an HDF5 file.
 
   o write_cut_metadata - Write the cut dictionaries to the HDF5 as metadata (so we can retrieve them later to see what cuts were made).
-
-cut.sh is an example script for running cut.py
 
 
 Plotting: interpolation.py creates the final plot used to derive the in ice DOM efficiency. To use this script, you need several simulated datasets of various DOM efficiencies, as well as an experimental datafile. The idea is that the charges are placed into bins based on the corresponding reco_distances (0-20 m, 20-40 m, etc.). This is done for each dataset, and then the averaged charges for each bin are scaled down by the corresponding average charge for ______. The scaled average charges in the 20-40 m, 40-60 m, and 60-80 m bins are averaged. This charge is plotted on the y-intercept.
