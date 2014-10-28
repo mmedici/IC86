@@ -112,14 +112,14 @@ def process(dataset_path):
 
     infile = tables.open_file(dataset_path)
 
-    reco_distance_IC = infile.root.RecoDistanceIC.cols.item[:]
-    total_charge_IC = infile.root.TotalChargeIC.cols.item[:]
+    reco_distance = infile.root.RecoDistanceCut.cols.item[:]
+    total_charge = infile.root.TotalChargeCut.cols.item[:]
 
     infile.close()
 
-    total_charge_IC_split = dist_bin_split(total_charge_IC, reco_distance_IC)
+    total_charge_split = dist_bin_split(total_charge, reco_distance)
 
-    mean_charges, errors = calc_charge_info(total_charge_IC_split)
+    mean_charges, errors = calc_charge_info(total_charge_split)
 
     return mean_charges, errors
 

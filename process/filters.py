@@ -3,7 +3,7 @@ Functions for filtering out frames.
 
 These are the base "cuts": they are always the same. The variable cuts
 (the ones you want to fiddle with), are done later in the cuts.py script
-(see the 'event_cuts' and 'dom_cuts' dictionaries).
+(see the 'event_cuts' and 'dom_cuts' dictionaries in cut_options_example.py).
 """
 
 from __future__ import print_function, division

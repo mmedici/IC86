@@ -2,6 +2,10 @@
 
 """
 Script for making event and DOM cuts.
+
+The cuts to make are specified in a file called "cut_options.py". The directory
+containing this file needs to be added to the PYTHONPATH in order for this file
+to find and import it. See example in the current directory for an example.
 """
 
 from __future__ import print_function, division  # 2to3

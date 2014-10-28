@@ -17,7 +17,7 @@ def make_event_cuts(frame, event_cuts):
     event_cuts : dict[str] -> tuple
         Contains the event cuts. The keys are the names of the objects within
         the frame, and the values are tuples containing the information on the
-        cut to make. For example, event_cuts['NDirDoms'] = ('greater than', 5)
+        cut to make. For example, event_cuts['NDirDoms'] = (operator.gt, 5)
         means we only keep frames with an 'NDirDoms' that is greater than 5. Easy.
 
     Returns
@@ -43,28 +43,26 @@ def make_event_cuts(frame, event_cuts):
 
 def make_dom_cuts(frame, dom_cuts, dom_keys):
     """
-    Cut out the data for the DOMs that do not pass the dom cuts, then split
-    apart the data that did pass into IC/DC.
+    Cut out the data for the DOMs that do not pass the dom cuts, then resave
+    the data that did pass into the frame.
 
     Parameters
     ----------
     dom_cuts : dict[str] -> tuple
         Contains the information about the dom cuts. The layout of this
         dictionary is the same as event_cuts. Ie.
-        dom_cuts['DistAboveEndpoint'] = ('greater than', 100)
+        dom_cuts['DistAboveEndpoint'] = (operator.gt, 100)
         means only keep the dom data with a 'DistAboveEndpoint' that is greater
         than 100.
 
     dom_keys : list of str
         The keys of the dom data to make a cut on. These are the keys that are
-        written to the HDF5 file (it doesn't make sense to do a cut on data that
-        won't be saved).
+        written to the HDF5 file.
 
     Adds To Frame
     -------------
-    NameOfDOMKeyIC, NameOfDOMKeyDC : I3VectorDouble
-        The cut DOM data split apart into IC and DC. This is done for all the
-        keys in dom_keys.
+    NameOfDOMKeyCut : I3VectorDouble
+        The cut DOM data. This is done for all the keys in dom_keys.
     """
 
     # pass_cut is a boolean array that records which data passes the
@@ -111,13 +109,13 @@ def write_cut_metadata(ofile, event_cuts, dom_cuts):
     event_cuts : dict[str] -> tuple
         Contains the event cuts. The keys are the names of the objects within
         the frame, and the values are tuples containing the information on the
-        cut to make. For example, event_cuts['NDirDoms'] = ('greater than', 5)
+        cut to make. For example, event_cuts['NDirDoms'] = (operator.gt, 5)
         means we only keep frames with an 'NDirDoms' that is greater than 5. Easy.
 
     dom_cuts : dict[str] -> tuple
         Contains the information about the dom cuts. The layout of this
         dictionary is the same as event_cuts. Ie.
-        dom_cuts['DistAboveEndpoint'] = ('greater than', 100)
+        dom_cuts['DistAboveEndpoint'] = (operator.gt, 100)
         means only keep the dom data with a 'DistAboveEndpoint' that is greater
         than 100.
     """

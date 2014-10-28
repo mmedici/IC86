@@ -1,3 +1,16 @@
+"""
+This file contains the cut options. The general format for the cut dictionaries
+is
+
+dict['FrameKeyString'] = (boolean_function, value)
+
+For example,
+
+event_cuts['NDirDoms'] = (operator.gt, 5)
+
+means only keep frames with an NDirDoms greater than 5.
+"""
+
 import operator as op
 
 import numpy as np

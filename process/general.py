@@ -10,16 +10,28 @@ from icecube import dataclasses, finiteReco
 def get_truth_muon(frame):
     """
     Count the number of in ice muons and get the most energetic one.
+
+    Adds To Frame
+    -------------
+    NumInIceMuons : I3Double
+        The number of in ice muons from the I3MCTree.
+
+    TruthMuon : I3Particle
+        The in ice muon with the largest energy. We take this muon as being
+        the "truth".
     """
+
     tree = frame['I3MCTree']
 
     muons = []
+    # Iterate over the in ice particles and find the muons.
     for particle in tree.in_ice:
         if particle.type_string in ('MuPlus', 'MuMinus'):
             muons.append(particle)
 
     frame['NumInIceMuons'] = dataclasses.I3Double(len(muons))
 
+    # Now find the in ice muon with the highest energy.
     max_energy_muon = muons[0]
     for muon in muons:
         if muon.energy > max_energy_muon.energy:
@@ -28,7 +40,16 @@ def get_truth_muon(frame):
     frame['TruthMuon'] = max_energy_muon
 
 
-def truth_endpoint(frame):
+def get_truth_endpoint(frame):
+    """
+    Get the endpoint of the truth muon track.
+
+    Adds to Frame
+    -------------
+    TruthEndpoint : I3Position
+        The endpoint of the truth muon track.
+    """
+
     muon = frame['TruthMuon']
     truth_endpoint = muon.shift_along_track(muon.length)
     frame['TruthEndpoint'] = truth_endpoint
@@ -36,7 +57,13 @@ def truth_endpoint(frame):
 
 def count_hits(frame, pulses_name):
     """
-    TODO document this.
+    Count the number of pulses in the given pulse series that occur in specific
+    regions of the detector.
+
+    Parameters
+    ---------
+    pulses_name : str
+        The key of the pulse series in the I3Frame.
 
     Adds To Frame
     -------------
@@ -53,6 +80,7 @@ def count_hits(frame, pulses_name):
         The number of hits outside the DC analysis region.
     """
 
+    # Strings in the analysis regions
     IC_strings = [26, 27, 37, 46, 45, 35, 17, 18, 19, 28, 38, 47, 56, 55, 54, 44, 34, 25]
     DC_strings = [81, 82, 83, 84, 85, 86]
 
@@ -63,12 +91,15 @@ def count_hits(frame, pulses_name):
 
     pulse_series = frame[pulses_name].apply(frame)
 
+    # Iterato over the doms in the pulse series and count the hits in each
+    # region
     for dom in pulse_series.keys():
         if dom.string in IC_strings and dom.om >= 40:
             IC_analysis_hits += 1
         if dom.string in DC_strings and dom.om >= 11:
             DC_analysis_hits += 1
 
+        # We need to exclude hits on strings 36, 79, and 80
         if dom.string not in [36, 79, 80] + DC_strings + IC_strings:
             IC_nhits += 1
         if dom.string not in [36, 79, 80] + DC_strings:

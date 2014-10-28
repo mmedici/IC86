@@ -13,7 +13,7 @@ from icecube.common_variables import direct_hits, hit_multiplicity, hit_statisti
 from I3Tray import I3Tray, I3Units, load
 
 from filters import in_ice, min_bias, SMT8, MPEFit, InIceSMTTriggered
-from general import get_truth_muon, truth_endpoint, count_hits, reco_endpoint, move_cut_variables
+from general import get_truth_muon, get_truth_endpoint, count_hits, reco_endpoint, move_cut_variables
 from geoanalysis import calc_dist_to_border
 from domanalysis import om_partition, dom_data
 
@@ -35,7 +35,7 @@ def main():
                         action='store_true')
     args = parser.parse_args()
 
-    # Don't touch
+    # Don't touch, unless you know what you're doing
     options = {}
     options['pulses_name'] = 'TWSRTOfflinePulses'
     options['max_dist'] = 140
@@ -178,19 +178,19 @@ def main():
                     PulseSeriesMapName=options['pulses_name'],
                     OutputI3HitStatisticsValuesName='HitStatisticsValues')
 
-    # Get ICAnalysisHits, DCAnalysisHits, and ICNHits
-    tray.AddModule(count_hits, 'count_hits',
-                   pulses_name=options['pulses_name'])
-
     # Move the cut variables into the top level of the frame.
     tray.AddModule(move_cut_variables, 'move_cut_variables',
                    direct_hits_name='MPEFitDirectHits',
                    fit_params_name='MPEFitFitParams')
 
+    # Calculate ICAnalysisHits, DCAnalysisHits, ICNHits, and DCNHits
+    tray.AddModule(count_hits, 'count_hits',
+                   pulses_name=options['pulses_name'])
+
     if args.sim:
         # Count the number of in ice muons and get the truth muon
         tray.AddModule(get_truth_muon, 'get_truth_muon')
-        tray.AddModule(truth_endpoint, 'truth_endpoint')
+        tray.AddModule(get_truth_endpoint, 'get_truth_endpoint')
 
     # Geoanalysis
 

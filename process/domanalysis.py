@@ -1,8 +1,8 @@
 """
-Functions for analyzing the doms.
+Functions used for analyzing the per-dom (as opposed to per-event) data.
 """
 
-from __future__ import print_function, division
+from __future__ import print_function, division  # 2to3
 
 import math
 
@@ -14,6 +14,16 @@ from icecube.dataclasses import I3Constants
 def om_partition(frame, output_name, options):
     """
     Partition the pulses.
+
+    Parameters
+    ----------
+    output_name : str
+    options : dict[str]
+
+    Adds To Frame
+    -------------
+    output_name.format(partition) : I3RecoPulseSeriesMap
+
     """
 
     # Initialize the RecoPulseSeriesMaps
@@ -26,7 +36,7 @@ def om_partition(frame, output_name, options):
 
     for dom, pulse_vector in pulse_series.items():
 
-        # Find out which partition the pulse_vector is in
+        # Find out which partition the pulse_vector should go in
         partition_num = (dom.string + dom.om) % options['partitions']
 
         # Put it in every partition except the one it is in.
@@ -38,16 +48,30 @@ def om_partition(frame, output_name, options):
 
 def dom_data(frame, reco_fit, options):
     """
+    Analyze and save the per-dom data using the provided fit.
+
+    Parameters
+    ----------
+    reco_fit : str
+        The key of the
+
+    options : dict[str]
 
     Adds To Frame
     -------------
     TotalCharge : I3VectorDouble
-
     String : I3VectorDouble
     OM : I3VectorDouble
     DistAboveEndpoint : I3VectorDouble
     ImpactAngle : I3VectorDouble
     RecoDistance : I3VectorDouble
+
+    Returns
+    -------
+    bool
+        Whether any per-dom data was added to the frame. If no data was added,
+        return False, because this frame contains no pertinent information.
+        Otherwise return True.
 
     """
 
@@ -70,14 +94,14 @@ def dom_data(frame, reco_fit, options):
     frame['ImpactAngle'] = dataclasses.I3VectorDouble()
     frame['RecoDistance'] = dataclasses.I3VectorDouble()
 
-    # Find all doms above reconstructed z coord of endpoint and
-    # within the specified distance interval of the track
     dom_geo = frame['I3Geometry'].omgeo.items()
 
+    # Find all doms above the reconstructed z coord of endpoint and
+    # within the specified distance interval of the track
     for dom, geo in dom_geo:  # (OMKey, I3OMGeo)
 
         # We want to get DOMs that are in the IC/DC strings and below the dust
-        # layer.
+        # layer (40 and below for IC, 11 and below for DC).
         if (dom.string in IC_strings and dom.om >= 40) or (dom.string in DC_strings and dom.om >= 11):
 
             dom_position = geo.position

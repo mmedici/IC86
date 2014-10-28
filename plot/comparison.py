@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 Compare the zenith, azimuth, energy, and other such things of the provided
 data files.

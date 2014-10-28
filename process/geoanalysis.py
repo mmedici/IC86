@@ -19,10 +19,11 @@ def get_coordinates(omgeo, strings):
     Parameters
     ----------
     omgeo : I3OMGeoMap[OMKey] -> I3OMGeo
-        Geometry of the DOMs.
+        Geometry of the DOMs in the detector.
 
     strings: list of ints
-        The strings to get the coordinates of.
+        The strings of which to get the coordinates (no dangling participles
+        here, no sir!).
 
     Returns
     -------
