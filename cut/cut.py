@@ -16,6 +16,7 @@ import math
 import I3Tray
 from icecube import icetray, dataclasses, dataio
 from icecube.hdfwriter import I3HDFTableService
+from icecube.rootwriter import I3ROOTTableService
 from icecube.tableio import I3TableWriter
 
 from functions import make_event_cuts, make_dom_cuts, write_cut_metadata
@@ -27,8 +28,10 @@ def main():
     parser = argparse.ArgumentParser(description='script for making event and DOM cuts')
     parser.add_argument('-d', '--datafiles', help='data files to make the cuts on',
                         nargs='+', required=True)
-    parser.add_argument('-o', '--ofile', help='name of output HDF5 file',
+    parser.add_argument('-o', '--ofile', help='name of output file',
                         required=True)
+    parser.add_argument('--root', help='write output to ROOT file instead',
+                        action='store_true')
     args = parser.parse_args()
 
     tray = I3Tray.I3Tray()
@@ -46,19 +49,23 @@ def main():
                    dom_cuts=dom_cuts,
                    dom_keys=dom_keys)
 
-    # Make a new HDF5 file
-    hdf5 = I3HDFTableService(args.ofile)
+    # Get the appropriate output file service
+    if args.root:
+        ofile_service = I3ROOTTableService(args.ofile)
+    else:
+        ofile_service = I3HDFTableService(args.ofile)
 
     tray.AddModule(I3TableWriter, 'I3TableWriter',
-                   TableService=hdf5,
+                   TableService=ofile_service,
                    BookEverything=True,
                    SubEventStreams=['in_ice'])
 
     tray.Execute()
     tray.Finish()
 
-    # Now write the cuts we made to the HDF5 as metadata (so we know for later).
-    write_cut_metadata(args.ofile, event_cuts, dom_cuts)
+    if not args.root:
+        # Write the cuts to the HDF5 as metadata (so we know for later).
+        write_cut_metadata(args.ofile, event_cuts, dom_cuts)
 
 
 if __name__ == '__main__':
