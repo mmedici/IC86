@@ -87,17 +87,18 @@ Quick How-To
 
 My own submit scripts for NPX (aka Condor) are saved in /home/jgarber/submit. From there they are organized into subdirectories; for example, the IC79 scripts for processing the reconstruction events for dataset 8316 are stored in submit/ic79/process/reco/8316 (the processed i3 files are stored in a similar location: /data/user/jgarber/ic79/process/reco/8316). Here is a way to bootstrap my scripts to process your own files.
 
-Suppose we want to process dataset 8641 with reconstructed IC79 (I already have, but let this be an exercise for the reader).
+Suppose we want to process dataset 8641 with reconstructed IC79.
 
-$ mkdir 8641
+$ mkdir ~/8641  # a directory for the Condor submit files
+$ mkdir /data/user/$USER/8641  # a directory for the processed i3 files
+$ cp /home/jgarber/submit/ic79/process/reco/8316/mkprocess.py 8641
 $ cd 8641
-$ cp ../8316/mkprocess.py .
 
 There are 200 8641 files to process, and because each Condor job runs for only 12 hours, we need a reasonable way to process all these 200 files in batches, say 15 at a time. This is what mkprocess.py does. It generates the bash scripts needed for all the batches.
 
 $ vim mkprocess.py
 
-Modify the bash script template in mkprocess.py so the gcd, datafile, and output directory paths point to the directories you want. Also change the path called by the python command so it points to the right processing script (with the options you want).
+Modify the bash script template in mkprocess.py so the gcd, datafile, and output directory paths point to the directories you want(in the above example, the output directory is /data/user/$USER/8641). Also change the path called by the python command so it points to the processing script you want (with the options you want).
 
 $ python mkprocess.py 0 200 15
 
@@ -112,7 +113,7 @@ $ tray_ic79 (or tray_ic86 depending on what you want to process)
 
 tray_ic79 and tray_ic86 are aliases for icetray environments in my home directory (look in /home/jgarber/.bashrc for the aliases) These environments have been modified to work with the analysis; no other icetray environments will work.
 
-$ cd /path/to/8641
+$ cd ~/8641
 $ submitall .
 
 submitall is another handy script (again in /home/jgarber/bin) that runs condor_submit on each submit file in the provided directory. You should now see a long list of submit information.
