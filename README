@@ -104,10 +104,6 @@ $ python mkprocess.py 0 200 15
 
 This generates bash scripts for processing the files 0 to 199 (we write 200 in classic computer science style) in batches of 15 files at once (eg. process_0_14.sh, process_15_29.sh, etc.)
 
-$ mksubmitdir .
-
-mksubmitdir is a little script I wrote (you can find it in /home/jgarber/bin) that makes all the bash scripts in the provided directory executable (chmod +x) and generates the necessary submit files for submitting the bash scripts to Condor.
-
 $ ssh submitter
 $ tray_ic79 (or tray_ic86 depending on what you want to process)
 
@@ -116,7 +112,7 @@ tray_ic79 and tray_ic86 are aliases for icetray environments in my home director
 $ cd ~/8641
 $ submitall .
 
-submitall is another handy script (again in /home/jgarber/bin) that runs condor_submit on each submit file in the provided directory. You should now see a long list of submit information.
+submitall is handy script (in /home/jgarber/bin) that makes all the bash scripts in the provided directory executable (chmod +x), generates the necessary submit files for Condor, and then submits them by running condor_submit. You should now see a long list of submit information.
 
 And there you go. Your scripts are now processing. Use condor_q to see how your jobs are doing. If they run overtime, DON'T use condor_release; it will restart your jobs, not continue them. Use condor_rm to remove the held jobs, then try resubmitting them in smaller batches, perhaps 10 instead of 15.
 
