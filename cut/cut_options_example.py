@@ -21,6 +21,7 @@ DC_strings = [81, 82, 83, 84, 85, 86]
 # The event cuts to make. Change these as much as you like.
 event_cuts = {}
 event_cuts['NDirDoms'] = (op.gt, 5)
+event_cuts['NHitDoms'] = (op.lt, 20)
 event_cuts['rlogl'] = (op.lt, 10)
 event_cuts['ICNHits'] = (op.lt, 20)
 event_cuts['RecoEndpointZ'] = (op.gt, -400)

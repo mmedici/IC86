@@ -131,12 +131,12 @@ def reco_endpoint(frame, endpoint_fit):
     frame['RecoEndpoint'] = endpoint
 
 
-def move_cut_variables(frame, direct_hits_name, fit_params_name):
+def move_cut_variables(frame, direct_hits_name, hit_multiplicity_name, fit_params_name):
     """
-    Move NDirDoms calculated in direct_hits, the rlogl fit parameter for the
-    provided fit, and the z coordinate of the reconstructed endpoint into the
-    top level of the frame. This is done so cuts.py can access these values
-    directly.
+    Move various cuts calculated in CommonVariables,
+    the rlogl fit parameter for the provided fit, and the z coordinate of the
+    reconstructed endpoint into the top level of the frame. This is done so cuts.py
+    can access these values directly.
 
     We want to use the 'C' time window for direct hits, ie. [-15 ns, +75 ns].
 
@@ -148,18 +148,27 @@ def move_cut_variables(frame, direct_hits_name, fit_params_name):
     direct_hits_name : str
         The OutputI3DirectHitsValuesBaseName.
 
+    hit_multiplicity_name : str
+        The OutputI3HitMultiplicityValuesName.
+
     fit_params_name : str
         The fit parameters frame object name for the desired fit.
 
     Adds To Frame
     -------------
     NDirDoms : I3Double
+    DirTrackLength : I3Double
+    NHitDoms : I3Double
     rlogl : I3Double
     RecoEndpointZ : I3Double
     """
 
     direct_hits = frame[direct_hits_name + 'C']
     frame['NDirDoms'] = dataclasses.I3Double(direct_hits.n_dir_doms)
+    frame['DirTrackLength'] = dataclasses.I3Double(direct_hits.dir_track_length)
+
+    hit_multiplicity = frame[hit_multiplicity_name]
+    frame['NHitDoms'] = dataclasses.I3Double(hit_multiplicity.n_hit_doms)
 
     fit_params = frame[fit_params_name]
     frame['rlogl'] = dataclasses.I3Double(fit_params.rlogl)

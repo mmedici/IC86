@@ -181,6 +181,7 @@ def main():
     # Move the cut variables into the top level of the frame.
     tray.AddModule(move_cut_variables, 'move_cut_variables',
                    direct_hits_name='MPEFitDirectHits',
+                   hit_multiplicity_name='HitMultiplicityValues'
                    fit_params_name='MPEFitFitParams')
 
     # Calculate ICAnalysisHits, DCAnalysisHits, ICNHits, and DCNHits
