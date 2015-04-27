@@ -5,6 +5,7 @@ General functions that don't fit into one category.
 from __future__ import print_function, division
 
 from icecube import dataclasses, finiteReco
+from icecube.common_variables import hit_multiplicity
 
 
 def get_truth_muon(frame):
