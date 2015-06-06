@@ -276,7 +276,7 @@ def main():
 
     plt.xlim(effs.min() - 0.1, effs.max() + 0.1)
     plt.ylim(effs.min() - 0.1, effs.max() + 0.1)
-    plt.figtext(0.8, 0.8, r'$ m = {:.3f}$'.format(m))
+    plt.figtext(0.8, 0.8, r'${:.3f}x + {:.3f}$'.format(m, b))
 
     plt.savefig(args.outdir + 'scaled_average_charge.pdf')
 
